@@ -1,0 +1,15 @@
+{
+  "name": "@clinic/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.6.7",
+    "date-fns-tz": "^3.2.0"
+  }
+}

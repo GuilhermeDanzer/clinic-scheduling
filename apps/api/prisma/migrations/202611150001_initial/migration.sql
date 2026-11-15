@@ -1,0 +1,13 @@
+CREATE TYPE "Role" AS ENUM ('CLINIC_STAFF', 'PATIENT');
+CREATE TYPE "AppointmentStatus" AS ENUM ('SCHEDULED', 'CANCELLED');
+CREATE TYPE "ReportStatus" AS ENUM ('DRAFT', 'PUBLISHED');
+CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, "passwordHash" TEXT NOT NULL, role "Role" NOT NULL);
+CREATE TABLE sessions ("tokenHash" TEXT PRIMARY KEY, "userId" TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, "expiresAt" TIMESTAMPTZ(3) NOT NULL);
+CREATE INDEX sessions_expiry ON sessions ("expiresAt");
+CREATE TABLE examination_types (id TEXT PRIMARY KEY, name TEXT NOT NULL);
+CREATE TABLE appointments (id TEXT PRIMARY KEY, "patientId" TEXT NOT NULL REFERENCES users(id), "examinationTypeId" TEXT NOT NULL REFERENCES examination_types(id), "scheduledAt" TIMESTAMPTZ(3) NOT NULL, status "AppointmentStatus" NOT NULL DEFAULT 'SCHEDULED');
+CREATE INDEX appointments_patient_date ON appointments ("patientId", "scheduledAt");
+CREATE INDEX appointments_date ON appointments ("scheduledAt");
+CREATE UNIQUE INDEX appointments_active_slot_unique ON appointments ("scheduledAt") WHERE status = 'SCHEDULED';
+ALTER TABLE appointments ADD CONSTRAINT aligned_slot CHECK (EXTRACT(MINUTE FROM "scheduledAt" AT TIME ZONE 'America/Sao_Paulo')::int % 30 = 0 AND EXTRACT(SECOND FROM "scheduledAt") = 0);
+CREATE TABLE medical_reports (id TEXT PRIMARY KEY, "appointmentId" TEXT NOT NULL UNIQUE REFERENCES appointments(id), title TEXT NOT NULL CHECK (length(trim(title)) > 0), text TEXT NOT NULL CHECK (length(trim(text)) > 0), "professionalName" TEXT NOT NULL CHECK (length(trim("professionalName")) > 0), status "ReportStatus" NOT NULL DEFAULT 'DRAFT', "publishedAt" TIMESTAMPTZ(3), CONSTRAINT publication_timestamp CHECK ((status = 'PUBLISHED') = ("publishedAt" IS NOT NULL)));

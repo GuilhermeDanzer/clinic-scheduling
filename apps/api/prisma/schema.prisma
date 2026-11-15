@@ -1,0 +1,67 @@
+generator client {
+ provider = "prisma-client-js"
+}
+datasource db {
+ provider = "postgresql"
+ url = env("DATABASE_URL")
+}
+enum Role {
+ CLINIC_STAFF
+ PATIENT
+}
+enum AppointmentStatus {
+ SCHEDULED
+ CANCELLED
+}
+enum ReportStatus {
+ DRAFT
+ PUBLISHED
+}
+model User {
+ id String @id @default(uuid())
+ name String
+ email String @unique
+ passwordHash String
+ role Role
+ appointments Appointment[]
+ sessions Session[]
+ @@map("users")
+}
+model Session {
+ tokenHash String @id
+ userId String
+ expiresAt DateTime @db.Timestamptz(3)
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ @@index([expiresAt])
+ @@map("sessions")
+}
+model ExaminationType {
+ id String @id
+ name String
+ appointments Appointment[]
+ @@map("examination_types")
+}
+model Appointment {
+ id String @id @default(uuid())
+ patientId String
+ examinationTypeId String
+ scheduledAt DateTime @db.Timestamptz(3)
+ status AppointmentStatus @default(SCHEDULED)
+ patient User @relation(fields: [patientId], references: [id])
+ examinationType ExaminationType @relation(fields: [examinationTypeId], references: [id])
+ report MedicalReport?
+ @@index([patientId, scheduledAt])
+ @@index([scheduledAt])
+ @@map("appointments")
+}
+model MedicalReport {
+ id String @id @default(uuid())
+ appointmentId String @unique
+ title String
+ text String
+ professionalName String
+ status ReportStatus @default(DRAFT)
+ publishedAt DateTime? @db.Timestamptz(3)
+ appointment Appointment @relation(fields: [appointmentId], references: [id])
+ @@map("medical_reports")
+}
